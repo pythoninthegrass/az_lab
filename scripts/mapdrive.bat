@@ -1,0 +1,1 @@
+powershell.exe -Command "$password = ConvertTo-SecureString "Badpass11813" -AsPlainText -Force; $Cred = New-Object System.Management.Automation.PSCredential (\"labs\Sylvia.Sutton\", $password); New-PSDrive -Name Z -PSProvider FileSystem -Root "\\dc01.labs.local\labs" -Credential $Cred  -Persist"

@@ -1,0 +1,165 @@
+# code: language=ansible
+
+---
+- hosts: localhost
+  connection: local
+  become: false
+  gather_facts: true
+  # debugger: on_failed
+  any_errors_fatal: true
+  vars:
+    os_environment:
+      - key: EDITOR
+        value: vim
+  pre_tasks:
+    - name: Print network interface info
+      ansible.builtin.debug:
+        msg: |
+          # get public ip address
+          curl icanhazip.com
+
+          # get active network interface
+          ip link show
+
+          # get private ip address
+          ip addr show enp0s1 | grep -Po 'inet \K[\d.]+'
+
+    - name: Get running ansible user
+      ansible.builtin.set_fact:
+        local_user: "{{ lookup('env', 'USER') }}"
+        home_dir: "{{ lookup('env', 'HOME') }}"
+        work_dir: "{{ playbook_dir | dirname }}"
+        cacheable: true
+
+    - name: Top-level directory in project
+      ansible.builtin.command: git rev-parse --show-toplevel
+      register: tld
+
+    - name: Enable ssh
+      ansible.builtin.service:
+        name: sshd
+        state: started
+        enabled: true
+
+    - name: Add deadsnakes ppa
+      become: true
+      ansible.builtin.apt_repository:
+        repo: ppa:deadsnakes/ppa
+        state: present
+        update_cache: true
+
+    - name: Install pip
+      become: true
+      ansible.builtin.package:
+        name: python3-pip
+        state: present
+
+    - name: Cross-platform dependencies
+      become: true
+      ansible.builtin.package:
+        name:
+        - ansible
+        - ansible-lint
+        - ca-certificates
+        - cloud-init
+        - dnsutils
+        - git
+        - inxi
+        - p7zip-full
+        - python3.11
+        - python3.11-venv
+        - tldr
+        - tree
+        - vim
+        - wget
+        state: present
+      # tags: qa
+
+    - name: Create default directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+      with_items:
+        - "{{ home_dir }}/git"
+        - "{{ home_dir }}/Desktop"
+        - "{{ home_dir }}/Documents"
+        - "{{ home_dir }}/Downloads"
+        - "{{ home_dir }}/Music"
+        - "{{ home_dir }}/Pictures"
+        - "{{ home_dir }}/Public"
+        - "{{ home_dir }}/Templates"
+        - "{{ home_dir }}/Videos"
+
+  tasks:
+    - name: Set /opt permissions
+      become: true
+      ansible.builtin.file:
+        path: /opt
+        mode: '0777'
+        state: directory
+
+    - name: Download linuxtools.7z
+      ansible.builtin.get_url:
+        url: https://github.com/pythoninthegrass/apt_lab_tf_linux/raw/master/linuxtools.7z
+        dest: /opt/linuxtools.7z
+      tags: qa
+
+    - name: Extract linuxtools.7z
+      ansible.builtin.command: |
+        7z x -y /opt/linuxtools.7z -o/opt
+      tags: qa
+
+    - name: Create tools directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+      with_items:
+        - /opt/SilentTrinity
+        - /opt/CrackMapExec
+      tags: qa
+
+    - name: Move silenttrinity
+      ansible.builtin.command: |
+        mv /opt/st /opt/SilentTrinity/
+      async: 5
+      tags: qa
+
+    - name: Move crackmapexec
+      ansible.builtin.shell: |
+        mv /opt/cme* /opt/CrackMapExec/
+      tags: qa
+
+    - name: Remove linuxtools.7z
+      ansible.builtin.file:
+        path: /opt/linuxtools.7z
+        state: absent
+      tags: qa
+
+    - name: Clone responder
+      ansible.builtin.git:
+        repo: https://github.com/lgandx/Responder.git
+        dest: /opt/Responder
+      tags: qa
+
+    - name: Clone impacket
+      ansible.builtin.git:
+        repo: https://github.com/SecureAuthCorp/impacket.git
+        dest: /opt/impacket
+      tags: qa
+
+    - name: Setup python virtual environment for impacket
+      ansible.builtin.command: python3.11 -m venv /opt/impacket/env
+      tags: qa
+
+    - name: Clone helk
+      ansible.builtin.git:
+        repo: https://github.com/Cyb3rWard0g/HELK.git
+        dest: /opt/helk
+      tags: qa
+
+    # TODO: run on x86_64 vm w/4cpu, 5gb ram, 20gb disk
+    - name: Run helk docker container
+      become: true
+      ansible.builtin.shell: |
+        /opt/helk/docker/helk_install.sh -p hunting -i 10.10.98.20 -b 'helk-kibana-analysis-alert'
+      tags: qa
