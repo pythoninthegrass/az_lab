@@ -86,7 +86,7 @@ resource "azurerm_storage_account" "my_storage_account" {
   location                 = azurerm_resource_group.rg.location
   resource_group_name      = azurerm_resource_group.rg.name
   account_tier             = "Standard"
-  account_replication_type = "LRS"
+  account_replication_type = "GRS"
 }
 
 # Create virtual machine
@@ -120,5 +120,33 @@ resource "azurerm_linux_virtual_machine" "my_terraform_vm" {
 
   boot_diagnostics {
     storage_account_uri = azurerm_storage_account.my_storage_account.primary_blob_endpoint
+  }
+}
+
+resource "null_resource" "ansible_provisioner" {
+  depends_on = [azurerm_linux_virtual_machine.my_terraform_vm]
+
+  connection {
+    type        = "ssh"
+    host        = azurerm_public_ip.my_terraform_public_ip.ip_address
+    user        = var.username
+    private_key = file("~/.ssh/id_rsa")
+  }
+
+  provisioner "local-exec" {
+    # * smoke test
+    # command = "ansible -i ${azurerm_public_ip.my_terraform_public_ip.ip_address}, -u ${var.username} --private-key ~/.ssh/id_rsa -m ping"
+    # ansible -i hosts -m ping azure
+
+    # * playbook
+    command = <<-EOT
+      ansible-playbook \
+      -i ../ansible/hosts \
+      -u ${var.username} \
+      ../ansible/playbook.yml \
+      --skip-tags qa \
+      -vvv \
+      -e azure=${azurerm_public_ip.my_terraform_public_ip.ip_address}
+    EOT
   }
 }
