@@ -2,6 +2,7 @@
 !**/.gitkeep
 **/facts/
 .ruff*
+*.bak
 scratch*.*
 tfplan
 
