@@ -57,14 +57,37 @@ terraform plan -out tfplan
 # apply terraform
 terraform apply tfplan
 
+# replace ansible_provisioner local-exec
+terraform apply -replace="null_resource.ansible_provisioner" -auto-approve
+
+# get public ip address
+ip_addr=$(terraform show -json | jq -r '.values.root_module.resources[] | select(.address == "azurerm_linux_virtual_machine.my_terraform_vm").values.public_ip_address')
+
 # copy files to instance
-scp ./ansible/playbook.yml ubuntu@<PUBLIC_IP>:~
+scp ./ansible/playbook.yml ubuntu@${ip_addr}:~
+
+# install ansible and activate virtualenv
+poetry install
+poetry shell
+
+# install terraform ansible collection
+ansible-galaxy collection install -r ./ansible/collections/requirements.yml
 
 # ssh into instance
-ssh -i ~/.ssh/id_rsa ubuntu@<PUBLIC_IP>
+ssh -i ~/.ssh/id_rsa ubuntu@${ip_addr}
 
-# run ansible over localhost
-ansible-playbook ~/playbook.yml <--tags|--skip-tags> qa -vvv
+# ping new server
+## stray comma is to prevent ansible from reading the ip as a file
+ansible all -i "$ip_addr," -m ping -u ubuntu
+
+# run ansible playbook
+## -i inventory
+## -u user
+## -b become
+## --tags|--skip-tags <tag>
+## -vvv verbose
+## -e extra vars
+ansible-playbook -i hosts -u ubuntu playbook.yml --skip-tags qa -vvv -e "azure=${ip_addr}"
 
 # disconnect from instance
 exit
