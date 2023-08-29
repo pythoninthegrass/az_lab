@@ -1,12 +1,10 @@
 # code: language=ansible
 
 ---
-- hosts: localhost
-  connection: local
+- hosts: "{{ azure | default('localhost') }}"
   become: false
   gather_facts: true
-  # debugger: on_failed
-  any_errors_fatal: true
+  any_errors_fatal: false
   vars:
     os_environment:
       - key: EDITOR
@@ -32,14 +30,13 @@
         cacheable: true
 
     - name: Top-level directory in project
-      ansible.builtin.command: git rev-parse --show-toplevel
+      ansible.builtin.shell: |
+        if [ -d ".git" ]; then
+          git rev-parse --show-toplevel
+        else
+          echo "{{ work_dir }}"
+        fi
       register: tld
-
-    - name: Enable ssh
-      ansible.builtin.service:
-        name: sshd
-        state: started
-        enabled: true
 
     - name: Add deadsnakes ppa
       become: true
@@ -73,7 +70,6 @@
         - vim
         - wget
         state: present
-      # tags: qa
 
     - name: Create default directories
       ansible.builtin.file:

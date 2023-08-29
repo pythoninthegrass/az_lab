@@ -1,0 +1,6 @@
+# code: language=ansible
+
+---
+collections:
+  - name: community.general
+  - name: cloud.terraform
