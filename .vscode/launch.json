@@ -18,12 +18,14 @@
             "env": {
                 "PYDEVD_DISABLE_FILE_VALIDATION": "1"
             },
-            // "args": ["-i", "response.xml", "-o", "response.csv"],
-            // "args": ["-d", "/Volumes/Data"],
-            // "args": ["-f", "menubar.dmg"],
-            // "args": ["-h"],
-            "args": ["-m", "1.1.1.0/24"]
-            // "args": ["-destroy"],
+            // "args": ["hello"],
+            // "args": ["tfi"],
+            // "args": ["tfp"],
+            // "args": ["tfa"],
+            // "args": ["tfs"],
+            "args": ["get-ip"],
+            // "args": ["add-ip"],
+            // "args": ["rm-ip"],
         },
         {
             "name": "Python: Django",
