@@ -17,13 +17,16 @@ client_id       = config('CLIENT_ID')
 client_secret   = config('CLIENT_SECRET')
 tenant_id       = config('TENANT_ID')
 
-tf = "terraform"
+# dirs
 tld = "terraform"
 tf_dir = str(Path(f"{tld}/linux").resolve())
 ch_dir = f"-chdir={tf_dir}"
-
 ans_dir = str(Path("ansible").resolve())
 
+# bin
+tf = "terraform"
+
+# typer init
 app = typer.Typer(context_settings={
     "help_option_names": ["-h", "--help"]}
 )
