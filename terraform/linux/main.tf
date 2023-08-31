@@ -143,7 +143,7 @@ resource "null_resource" "ansible_provisioner" {
       ansible-playbook \
       -i ../ansible/hosts \
       -u ${var.username} \
-      ../ansible/playbook.yml \
+      ../../ansible/playbook.yml \
       --skip-tags qa \
       -vvv \
       -e azure=${azurerm_public_ip.my_terraform_public_ip.ip_address}
